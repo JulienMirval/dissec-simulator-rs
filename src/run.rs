@@ -36,6 +36,12 @@ impl BuildingBlocks {
     }
 }
 
+pub struct CostsSettings {
+    pub crypto: usize,
+    pub comm: usize,
+    pub compute: usize,
+}
+
 pub struct TreeSettings {
     pub fanout: u8,
     pub depth: u8,
@@ -45,5 +51,6 @@ pub struct TreeSettings {
 pub struct RunSettings {
     pub building_blocks: BuildingBlocks,
     pub average_failure_time: f64,
+    pub costs: CostsSettings,
     pub tree: TreeSettings,
 }

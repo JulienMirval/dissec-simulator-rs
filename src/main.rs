@@ -24,6 +24,7 @@ fn main() {
         .nodes
         .get(&manager.querier_address)
         .unwrap()
+        .data()
         .tree_node
         .print(&manager, Some(0));
 }

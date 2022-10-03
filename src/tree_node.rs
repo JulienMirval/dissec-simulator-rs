@@ -1,7 +1,9 @@
 use crate::{common::Address, manager::Manager};
 
+#[derive(Clone)]
 pub struct TreeNode {
     pub address: Address,
+    pub depth: u8,
     pub members: Vec<Address>,
     pub parents: Vec<Address>,
     pub children: Vec<Vec<Address>>,
@@ -11,6 +13,7 @@ impl TreeNode {
     pub fn new(address: Address) -> TreeNode {
         TreeNode {
             address,
+            depth: 0,
             members: vec![],
             parents: vec![],
             children: vec![],
@@ -25,7 +28,7 @@ impl TreeNode {
             tabs,
             self.members
                 .iter()
-                .map(|x| format!("#{} ({})", x, manager.nodes.get(&x).unwrap().role))
+                .map(|x| format!("#{} ({})", x, manager.nodes.get(&x).unwrap().data().role))
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -35,6 +38,7 @@ impl TreeNode {
                 .nodes
                 .get(child.first().unwrap())
                 .unwrap()
+                .data()
                 .tree_node
                 .print(manager, Some(depth + 1));
         }

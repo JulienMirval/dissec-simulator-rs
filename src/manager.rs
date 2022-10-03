@@ -6,13 +6,13 @@ use std::collections::{BinaryHeap, HashMap};
 
 use crate::common::*;
 use crate::message::Message;
-use crate::node::{Node, NodeRole};
-use crate::run::{BuildingBlocks, RunSettings, TreeSettings};
+use crate::node::{AggregatorNode, ContributorNode, LeafAggregatorNode, Node, QuerierNode};
+use crate::run::{BuildingBlocks, CostsSettings, RunSettings, TreeSettings};
 
 pub struct Manager {
     pub settings: RunSettings,
     pub seed: String,
-    pub nodes: HashMap<Address, Node>,
+    pub nodes: HashMap<Address, Box<dyn Node>>,
     pub querier_address: Address,
     pub message_heap: BinaryHeap<Message>,
     pub current_time: f64,
@@ -30,6 +30,11 @@ impl Manager {
             settings: RunSettings {
                 building_blocks: BuildingBlocks::tolerant(),
                 average_failure_time: 10000.0,
+                costs: CostsSettings {
+                    crypto: 100,
+                    comm: 100,
+                    compute: 0,
+                },
                 tree,
             },
             seed,
@@ -67,6 +72,7 @@ impl Manager {
                 .nodes
                 .get(&parent_group_first_node)
                 .unwrap()
+                .data()
                 .tree_node
                 .members
                 .clone()
@@ -77,6 +83,7 @@ impl Manager {
                     .nodes
                     .get_mut(&member)
                     .unwrap()
+                    .data_mut()
                     .tree_node
                     .children
                     .push(group_nodes.clone());
@@ -84,21 +91,21 @@ impl Manager {
 
             let mut next_node = group_nodes.last().unwrap().increment(Some(1));
             for addr in group_nodes.clone() {
-                let mut node = Node::new(
-                    addr,
-                    if current_depth > 1 {
-                        NodeRole::Aggregator
-                    } else if current_depth == 1 {
-                        NodeRole::LeafAggregator
-                    } else {
-                        NodeRole::Contributor
-                    },
-                );
-                node.tree_node.members = group_nodes.clone();
-                node.tree_node.parents = manager
+                let mut node: Box<dyn Node> = if current_depth > 1 {
+                    AggregatorNode::new(addr)
+                } else if current_depth == 1 {
+                    LeafAggregatorNode::new(addr)
+                } else {
+                    ContributorNode::new(addr)
+                };
+
+                node.data_mut().tree_node.depth = current_depth;
+                node.data_mut().tree_node.members = group_nodes.clone();
+                node.data_mut().tree_node.parents = manager
                     .nodes
                     .get(&parent_group_first_node)
                     .unwrap()
+                    .data()
                     .tree_node
                     .members
                     .clone();
@@ -138,8 +145,8 @@ impl Manager {
         }
 
         // Create the querier group
-        let mut querier_group = Node::new(self.querier_address, NodeRole::Querier);
-        querier_group.tree_node.members = (0..self.settings.tree.group_size)
+        let mut querier_group: Box<dyn Node> = QuerierNode::new(self.querier_address);
+        querier_group.data_mut().tree_node.members = (0..self.settings.tree.group_size)
             .map(|_| self.querier_address)
             .collect();
         self.nodes.insert(self.querier_address, querier_group);
@@ -162,13 +169,47 @@ impl Manager {
             let failed_nodes = self
                 .nodes
                 .iter()
-                .filter(|(_, x)| x.death_time < self.current_time)
+                .filter(|(_, x)| x.data().death_time < self.current_time)
                 .count();
 
-            let replacement_time: f64 = 0.0;
+            // Parent signs, backup answers, parent confirms, backup verifies.
+            // Then backup signs and asks members, they verify and answer with children
+            let replacement_time: f64 =
+                (10 * self.settings.costs.crypto + 8 * self.settings.costs.comm) as f64;
             self.current_time += replacement_time * (failed_nodes as f64);
         } else if self.settings.building_blocks.local_failure_propagation {
-            // Failed nodes are detected by their parents
+            // Failed nodes are dropped by their parents
+            let failed_nodes: Vec<_> = self
+                .nodes
+                .iter()
+                .filter(|(_, x)| x.data().death_time < self.current_time)
+                .map(|(_, x)| x.data().address)
+                .collect();
+
+            // Stop subtrees recursively
+            // Note: stopping too many nodes, tree creation should continue despite failures when not on the leader
+            let mut stopped_nodes: usize = 0;
+            fn stop_child(manager: &mut Manager, stopped_nodes: &mut usize, target: &Address) {
+                let node = manager.nodes.get(target).unwrap().data().tree_node.clone();
+                *stopped_nodes += node.children.len();
+
+                for member in &node.members {
+                    manager.nodes.get_mut(member).unwrap().data_mut().death_time = 0.0;
+                }
+                for child in node.children {
+                    stop_child(manager, stopped_nodes, child.first().unwrap());
+                }
+            }
+            for node in &failed_nodes {
+                stop_child(self, &mut stopped_nodes, node);
+            }
+        } else if self.settings.building_blocks.full_failure_propagation {
+            // self.current_time = self
+            //     .nodes
+            //     .iter()
+            //     .map(|(_, x)| x.data().death_time)
+            //     .reduce(|a, b| if a > b { b } else { a })
+            //     .unwrap();
         }
     }
 
@@ -177,7 +218,7 @@ impl Manager {
         let exp = Exp::new(1.0 / self.settings.average_failure_time).unwrap();
 
         for (_, node) in &mut self.nodes {
-            node.death_time = exp.sample(&mut self.rng);
+            node.data_mut().death_time = exp.sample(&mut self.rng);
         }
     }
 }
@@ -204,7 +245,7 @@ mod tests {
         manager
             .nodes
             .iter()
-            .for_each(|(_, x)| assert_ne!(x.death_time, 0.0));
+            .for_each(|(_, x)| assert_ne!(x.data().death_time, 0.0));
 
         manager.generate_failures();
     }
