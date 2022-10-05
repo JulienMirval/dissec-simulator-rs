@@ -27,4 +27,8 @@ fn main() {
         .data()
         .tree_node
         .print(&manager, Some(0));
+
+    while manager.handle_next_message() {
+        println!("Handling next message")
+    }
 }

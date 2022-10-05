@@ -1,28 +1,33 @@
-use crate::common::Address;
+use crate::{common::Address, run::RunSettings, tree_node::TreeNode};
 
-use super::{BaseNode, Node, NodeData, NodeRole};
+use super::{Node, NodeData, NodeRole};
 
 pub struct QuerierNode {
-    node: BaseNode,
+    data: NodeData,
 }
 
 impl Node for QuerierNode {
-    fn new(address: Address) -> Box<QuerierNode> {
-        let mut node = BaseNode::new(address);
-        node.data_mut().role = NodeRole::Aggregator;
+    fn new(settings: RunSettings, address: Address) -> Box<QuerierNode> {
+        let data = NodeData {
+            settings,
+            address,
+            role: NodeRole::Querier,
+            local_time: 0.0,
+            death_time: 0.0,
+            opened_channels: vec![],
+            tree_node: TreeNode::new(address),
+        };
 
-        Box::new(QuerierNode { node: *node })
+        Box::new(QuerierNode { data })
     }
 
+    fn settings(&self) -> &RunSettings {
+        &self.settings()
+    }
     fn data(&self) -> &NodeData {
-        &self.node.data()
+        &self.data
     }
-
     fn data_mut(&mut self) -> &mut NodeData {
-        self.node.data_mut()
+        &mut self.data
     }
-
-    fn initialize(&mut self) {}
-
-    fn handle_send_data(&mut self) {}
 }

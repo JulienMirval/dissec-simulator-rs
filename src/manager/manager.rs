@@ -9,7 +9,6 @@ use crate::run::{BuildingBlocks, CostsSettings, RunSettings, TreeSettings};
 
 pub struct Manager {
     pub settings: RunSettings,
-    pub seed: String,
     pub nodes: HashMap<Address, Box<dyn Node>>,
     pub querier_address: Address,
     pub message_heap: BinaryHeap<Message>,
@@ -34,8 +33,8 @@ impl Manager {
                     compute: 0,
                 },
                 tree,
+                seed,
             },
-            seed,
             querier_address: 0_usize,
             nodes: HashMap::new(),
             message_heap: BinaryHeap::new(),
@@ -43,13 +42,14 @@ impl Manager {
             rng: SmallRng::from_seed(seed_bytes),
         };
 
-        return manager;
+        manager
     }
 
     /// Creates all the nodes in the tree and initializes them
     pub fn setup(&mut self) {
         // Create the querier group
-        let mut querier_group: Box<dyn Node> = QuerierNode::new(self.querier_address);
+        let mut querier_group: Box<dyn Node> =
+            QuerierNode::new(self.settings.clone(), self.querier_address);
         querier_group.data_mut().tree_node.members = (0..self.settings.tree.group_size)
             .map(|_| self.querier_address)
             .collect();
@@ -72,5 +72,22 @@ impl Manager {
         // self.initialize_tree_failures();
 
         self.initialize_nodes();
+    }
+
+    pub fn handle_next_message(&mut self) -> bool {
+        let msg = self.message_heap.pop();
+
+        if let Some(mut msg) = msg {
+            self.nodes
+                .get_mut(&msg.receiver)
+                .unwrap()
+                .handle_message(&mut msg)
+                .iter()
+                .for_each(|resulting_message| self.message_heap.push(resulting_message.clone()));
+
+            true
+        } else {
+            false
+        }
     }
 }

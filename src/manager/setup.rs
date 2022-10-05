@@ -4,7 +4,11 @@ use itertools::Itertools;
 use rand::Rng;
 use rand_distr::{Distribution, Exp};
 
-use crate::{common::*, node::*};
+use crate::{
+    common::*,
+    message::{Message, MessageType},
+    node::*,
+};
 
 use super::Manager;
 
@@ -20,7 +24,7 @@ impl Manager {
 
     /// Initializes the channels between nodes and send initial messages
     pub(super) fn initialize_nodes(&mut self) {
-        for (_, node) in self.nodes.iter_mut() {
+        for (&node_address, node) in self.nodes.iter_mut() {
             let position = node
                 .data()
                 .tree_node
@@ -28,19 +32,30 @@ impl Manager {
                 .iter()
                 .position(|x| x == &node.data().tree_node.address)
                 .unwrap();
+
+            // Contributors don't monitor health
+            if node.data().role != NodeRole::Contributor {
+                self.message_heap.push(Message::new(
+                    MessageType::ScheduleHealthCheck,
+                    self.current_time,
+                    node_address,
+                    node_address,
+                ));
+            }
+
             if node.data().role == NodeRole::Querier {
                 // Channels with children
                 for child in node.data().tree_node.children[0].clone() {
                     node.data_mut()
                         .opened_channels
-                        .push(ChannelState::new(child))
+                        .push(ChannelState::new(child, true));
                 }
             } else if node.data().role == NodeRole::Aggregator {
                 // Channels with parent
                 let parent_address = node.data().tree_node.parents[position];
                 node.data_mut()
                     .opened_channels
-                    .push(ChannelState::new(parent_address));
+                    .push(ChannelState::new(parent_address, false));
 
                 // Leader opens with members
                 if position == 0 {
@@ -56,27 +71,35 @@ impl Manager {
                     for member in members {
                         node.data_mut()
                             .opened_channels
-                            .push(ChannelState::new(member));
+                            .push(ChannelState::new(member, false));
                     }
                 } else {
                     let leader = node.data().tree_node.members[0];
                     node.data_mut()
                         .opened_channels
-                        .push(ChannelState::new(leader));
+                        .push(ChannelState::new(leader, false));
                 }
 
                 // Channels with children
                 for group in node.data().tree_node.children.clone() {
+                    println!(
+                        "#{} role {} {:?} position {} child {:?}",
+                        node.data().address,
+                        node.data().role,
+                        node.data().tree_node.children,
+                        position,
+                        group
+                    );
                     node.data_mut()
                         .opened_channels
-                        .push(ChannelState::new(group[position]));
+                        .push(ChannelState::new(group[position], true));
                 }
             } else if node.data().role == NodeRole::LeafAggregator {
                 // Channels with parent
                 let parent_address = node.data().tree_node.parents[position];
                 node.data_mut()
                     .opened_channels
-                    .push(ChannelState::new(parent_address));
+                    .push(ChannelState::new(parent_address, false));
 
                 // Leader opens with members
                 let members = node
@@ -91,7 +114,7 @@ impl Manager {
                 for member in members {
                     node.data_mut()
                         .opened_channels
-                        .push(ChannelState::new(member));
+                        .push(ChannelState::new(member, true));
                 }
             }
         }
@@ -206,11 +229,11 @@ impl Manager {
         let mut next_node = group_nodes.last().unwrap().increment(Some(1));
         for addr in group_nodes.clone() {
             let mut node: Box<dyn Node> = if current_depth > 1 {
-                AggregatorNode::new(addr)
+                AggregatorNode::new(manager.settings.clone(), addr)
             } else if current_depth == 1 {
-                LeafAggregatorNode::new(addr)
+                LeafAggregatorNode::new(manager.settings.clone(), addr)
             } else {
-                ContributorNode::new(addr)
+                ContributorNode::new(manager.settings.clone(), addr)
             };
 
             node.data_mut().tree_node.depth = current_depth;

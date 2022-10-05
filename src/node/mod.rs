@@ -1,5 +1,5 @@
 mod aggregator;
-mod base_node;
+mod channel;
 mod contributor;
 mod leaf_aggregator;
 mod node;
@@ -7,7 +7,7 @@ mod querier;
 mod role;
 
 pub use aggregator::*;
-pub use base_node::*;
+pub use channel::*;
 pub use contributor::*;
 pub use leaf_aggregator::*;
 pub use node::*;

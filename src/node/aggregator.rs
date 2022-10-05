@@ -1,28 +1,34 @@
-use crate::common::Address;
+use crate::{common::Address, run::RunSettings, tree_node::TreeNode};
 
-use super::{BaseNode, Node, NodeData, NodeRole};
+use super::{Node, NodeData, NodeRole};
 
 pub struct AggregatorNode {
-    node: BaseNode,
+    data: NodeData,
 }
 
 impl Node for AggregatorNode {
-    fn new(address: Address) -> Box<AggregatorNode> {
-        let mut node = BaseNode::new(address);
-        node.data_mut().role = NodeRole::Aggregator;
+    fn new(settings: RunSettings, address: Address) -> Box<AggregatorNode> {
+        let mut data = NodeData {
+            settings,
+            address,
+            role: NodeRole::Replacement,
+            local_time: 0.0,
+            death_time: 0.0,
+            opened_channels: vec![],
+            tree_node: TreeNode::new(address),
+        };
+        data.role = NodeRole::Aggregator;
 
-        Box::new(AggregatorNode { node: *node })
+        Box::new(AggregatorNode { data })
     }
 
+    fn settings(&self) -> &RunSettings {
+        &self.settings()
+    }
     fn data(&self) -> &NodeData {
-        &self.node.data()
+        &self.data
     }
-
     fn data_mut(&mut self) -> &mut NodeData {
-        self.node.data_mut()
+        &mut self.data
     }
-
-    fn initialize(&mut self) {}
-
-    fn handle_send_data(&mut self) {}
 }
