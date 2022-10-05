@@ -18,7 +18,7 @@ fn main() {
         },
     );
 
-    manager.generate_tree_nodes();
+    manager.setup();
 
     manager
         .nodes

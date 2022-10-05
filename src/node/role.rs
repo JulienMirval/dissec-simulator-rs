@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 
+#[derive(PartialEq)]
 pub enum NodeRole {
     Querier,
     Aggregator,

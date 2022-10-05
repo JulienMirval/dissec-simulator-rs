@@ -6,6 +6,12 @@ pub struct ChannelState {
     pub peer_address: Address,
 }
 
+impl ChannelState {
+    pub fn new(peer: Address) -> ChannelState {
+        ChannelState { peer_address: peer }
+    }
+}
+
 pub struct NodeData {
     pub address: Address,
     pub role: NodeRole,

@@ -28,14 +28,6 @@ impl BuildingBlocks {
     }
 }
 
-impl BuildingBlocks {
-    pub fn tree_construction_latency(&self) -> f64 {
-        match self {
-            _ => 0.0,
-        }
-    }
-}
-
 pub struct CostsSettings {
     pub crypto: usize,
     pub comm: usize,
@@ -53,4 +45,10 @@ pub struct RunSettings {
     pub average_failure_time: f64,
     pub costs: CostsSettings,
     pub tree: TreeSettings,
+}
+
+impl RunSettings {
+    pub fn tree_construction_latency(&self) -> f64 {
+        (self.tree.depth as f64) * (self.costs.crypto * 4 + self.costs.comm * 2) as f64
+    }
 }
