@@ -29,6 +29,24 @@ pub trait Node {
     fn initialize(&mut self) {}
 
     fn handle_message(&mut self, msg: &mut Message) -> Vec<Message> {
+        if self.data().death_time <= msg.arrival_time {
+            // The node is dead by the time the message arrives
+            return vec![];
+        }
+
+        print!(
+            "[@{}] Node #{} ({}): ",
+            self.data().local_time,
+            self.data().address,
+            self.data().role
+        );
+
+        self.data_mut().local_time = if self.data().local_time < msg.arrival_time {
+            msg.arrival_time
+        } else {
+            self.data().local_time
+        };
+        msg.delivered = true;
         match msg.message_type {
             MessageType::ScheduleHealthCheck => self.handle_schedule_health_check(msg),
             MessageType::RequestHealth => self.handle_request_health(msg),
@@ -50,6 +68,7 @@ pub trait Node {
                     MessageType::RequestHealth,
                     self.data().local_time,
                     self.data().address,
+                    self.data().local_time + self.message_latency(),
                     channel.peer_address,
                 ))
             });
@@ -59,21 +78,25 @@ pub trait Node {
             MessageType::ScheduleHealthCheck,
             self.data().address,
             self.data().local_time,
-            self.data().local_time,
+            self.data().local_time + self.data().settings.health_check_period,
         ));
 
         resulting_messages
     }
-    fn handle_request_health(&mut self, msg: &mut Message) -> Vec<Message> {
+    fn handle_request_health(&mut self, _msg: &mut Message) -> Vec<Message> {
         println!("Default implementation request HC");
-        let mut resulting_messages = vec![];
+        let resulting_messages = vec![];
 
         resulting_messages
     }
-    fn handle_confirm_health(&mut self, msg: &mut Message) -> Vec<Message> {
+    fn handle_confirm_health(&mut self, _msg: &mut Message) -> Vec<Message> {
         println!("Default implementation send data");
-        let mut resulting_messages = vec![];
+        let resulting_messages = vec![];
 
         resulting_messages
+    }
+
+    fn message_latency(&self) -> f64 {
+        self.data().settings.costs.comm
     }
 }

@@ -29,6 +29,6 @@ fn main() {
         .print(&manager, Some(0));
 
     while manager.handle_next_message() {
-        println!("Handling next message")
+        println!("{:?}", manager.message_heap.peek());
     }
 }

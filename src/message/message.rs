@@ -1,8 +1,8 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Display};
 
 use crate::common::Address;
 
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum MessageType {
     Stop,
     RequestContribution,
@@ -22,11 +22,12 @@ impl MessageType {
     }
 }
 
-#[derive(PartialEq, PartialOrd, Clone)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct Message {
+    pub delivered: bool,
     pub departure_time: f64,
     pub emitter: Address,
-    pub arrival_time: Option<f64>,
+    pub arrival_time: f64,
     pub receiver: Address,
     pub message_type: MessageType,
 }
@@ -36,12 +37,14 @@ impl Message {
         message_type: MessageType,
         departure_time: f64,
         emitter: Address,
+        arrival_time: f64,
         receiver: Address,
     ) -> Self {
         Message {
+            delivered: false,
             departure_time,
             emitter,
-            arrival_time: None,
+            arrival_time,
             receiver,
             message_type,
         }
@@ -54,9 +57,10 @@ impl Message {
         arrival_time: f64,
     ) -> Self {
         Message {
+            delivered: false,
             departure_time,
             emitter,
-            arrival_time: Some(arrival_time),
+            arrival_time,
             receiver: emitter,
             message_type,
         }
@@ -68,6 +72,8 @@ impl Eq for Message {}
 impl Ord for Message {
     fn cmp(&self, other: &Self) -> Ordering {
         if self.arrival_time < other.arrival_time {
+            Ordering::Less
+        } else if self.arrival_time > other.arrival_time {
             Ordering::Greater
         } else {
             if self.message_type.priority() > other.message_type.priority() {
@@ -78,6 +84,22 @@ impl Ord for Message {
                 Ordering::Less
             }
         }
+    }
+}
+
+impl Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(
+            format!(
+                "Message ({:?}) Node #{} @ {} -> Node #{} @ {}",
+                self.message_type,
+                self.emitter,
+                self.departure_time,
+                self.receiver,
+                self.arrival_time
+            )
+            .as_str(),
+        )
     }
 }
 
@@ -94,12 +116,14 @@ mod tests {
             MessageType::RequestContribution,
             0.0,
             addr,
+            0.0,
             addr.increment(None),
         );
         let b = Message::new(
             MessageType::RequestContribution,
             0.0,
             addr,
+            0.0,
             addr.increment(None),
         );
 
@@ -113,9 +137,10 @@ mod tests {
             MessageType::RequestContribution,
             0.0,
             addr,
+            0.0,
             addr.increment(None),
         );
-        let b = Message::new(MessageType::SendData, 0.0, addr, addr.increment(None));
+        let b = Message::new(MessageType::SendData, 0.0, addr, 0.0, addr.increment(None));
 
         assert!(a.cmp(&b) == Ordering::Greater);
     }

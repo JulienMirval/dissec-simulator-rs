@@ -35,9 +35,9 @@ impl BuildingBlocks {
 
 #[derive(Default, Clone)]
 pub struct CostsSettings {
-    pub crypto: usize,
-    pub comm: usize,
-    pub compute: usize,
+    pub crypto: f64,
+    pub comm: f64,
+    pub compute: f64,
 }
 
 #[derive(Default, Clone)]
@@ -51,6 +51,7 @@ pub struct TreeSettings {
 pub struct RunSettings {
     pub building_blocks: BuildingBlocks,
     pub average_failure_time: f64,
+    pub health_check_period: f64,
     pub costs: CostsSettings,
     pub tree: TreeSettings,
     pub seed: String,
@@ -58,6 +59,6 @@ pub struct RunSettings {
 
 impl RunSettings {
     pub fn tree_construction_latency(&self) -> f64 {
-        (self.tree.depth as f64) * (self.costs.crypto * 4 + self.costs.comm * 2) as f64
+        (self.tree.depth as f64) * self.costs.crypto * 4.0 + self.costs.comm * 2.0
     }
 }

@@ -39,6 +39,7 @@ impl Manager {
                     MessageType::ScheduleHealthCheck,
                     self.current_time,
                     node_address,
+                    self.current_time,
                     node_address,
                 ));
             }
@@ -125,7 +126,7 @@ impl Manager {
         if self.settings.building_blocks.aggregator_node_replacement {
             // When replacing nodes, extend the construction by the time it takes to replace a node times the number of failures
             let replacement_time: f64 =
-                (10 * self.settings.costs.crypto + 8 * self.settings.costs.comm) as f64;
+                10.0 * self.settings.costs.crypto + 8.0 * self.settings.costs.comm;
 
             let nodes_sorted = self
                 .nodes

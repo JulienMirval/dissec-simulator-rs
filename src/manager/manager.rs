@@ -27,10 +27,11 @@ impl Manager {
             settings: RunSettings {
                 building_blocks: BuildingBlocks::resilient(),
                 average_failure_time: 10000.0,
+                health_check_period: 1000.0,
                 costs: CostsSettings {
-                    crypto: 100,
-                    comm: 100,
-                    compute: 0,
+                    crypto: 100.0,
+                    comm: 100.0,
+                    compute: 0.0,
                 },
                 tree,
                 seed,
