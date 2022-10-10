@@ -25,6 +25,7 @@ dependencies = [
  "rand_pcg",
  "rand_seeder",
  "rust-crypto",
+ "sorted-insert",
 ]
 
 [[package]]
@@ -216,6 +217,12 @@ name = "rustc-serialize"
 version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
+
+[[package]]
+name = "sorted-insert"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5dd62203d74a728ae353b4d716fc2a80e8da881dfdf8bbc0c012d877a58c4030"
 
 [[package]]
 name = "time"

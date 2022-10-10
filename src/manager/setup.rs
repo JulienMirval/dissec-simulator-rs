@@ -24,18 +24,19 @@ impl Manager {
 
     /// Initializes the channels between nodes and send initial messages
     pub(super) fn initialize_nodes(&mut self) {
+        let mut messages = vec![];
         for (&node_address, node) in self.nodes.iter_mut() {
             let position = node
                 .data()
                 .tree_node
                 .members
                 .iter()
-                .position(|x| x == &node.data().tree_node.address)
+                .position(|x| x == &node.data().address)
                 .unwrap();
 
             // Contributors don't monitor health
             if node.data().role != NodeRole::Contributor {
-                self.message_heap.push(Message::new(
+                messages.push(Message::new(
                     MessageType::ScheduleHealthCheck,
                     self.current_time,
                     node_address,
@@ -66,7 +67,7 @@ impl Manager {
                         .members
                         .clone()
                         .into_iter()
-                        .filter(|x| x != &node.data().tree_node.address)
+                        .filter(|x| x != &node.data().address)
                         .collect::<Vec<_>>();
 
                     for member in members {
@@ -83,14 +84,6 @@ impl Manager {
 
                 // Channels with children
                 for group in node.data().tree_node.children.clone() {
-                    println!(
-                        "#{} role {} {:?} position {} child {:?}",
-                        node.data().address,
-                        node.data().role,
-                        node.data().tree_node.children,
-                        position,
-                        group
-                    );
                     node.data_mut()
                         .opened_channels
                         .push(ChannelState::new(group[position], true));
@@ -109,7 +102,7 @@ impl Manager {
                     .members
                     .clone()
                     .into_iter()
-                    .filter(|x| x != &node.data().tree_node.address)
+                    .filter(|x| x != &node.data().address)
                     .collect::<Vec<_>>();
 
                 for member in members {
@@ -118,6 +111,10 @@ impl Manager {
                         .push(ChannelState::new(member, true));
                 }
             }
+        }
+
+        for msg in messages {
+            self.insert_message(msg);
         }
     }
 
@@ -144,7 +141,6 @@ impl Manager {
                 .collect::<Vec<_>>();
 
             let mut i = 0;
-            println!("{}", nodes_sorted.get(i).unwrap().data().death_time);
             while nodes_sorted.get(i).is_some()
                 && self.current_time > nodes_sorted.get(i).unwrap().data().death_time
             {

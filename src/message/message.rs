@@ -2,25 +2,7 @@ use std::{cmp::Ordering, fmt::Display};
 
 use crate::common::Address;
 
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
-pub enum MessageType {
-    Stop,
-    RequestContribution,
-    SendData,
-    ScheduleHealthCheck,
-    RequestHealth,
-    ConfirmHealth,
-}
-
-impl MessageType {
-    fn priority(self) -> u8 {
-        match self {
-            MessageType::Stop => 255,
-            MessageType::RequestContribution => 1,
-            _ => 0,
-        }
-    }
-}
+use super::MessageType;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct Message {
@@ -71,11 +53,8 @@ impl Eq for Message {}
 
 impl Ord for Message {
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.arrival_time < other.arrival_time {
-            Ordering::Less
-        } else if self.arrival_time > other.arrival_time {
-            Ordering::Greater
-        } else {
+        let time_cmp = self.arrival_time.total_cmp(&other.arrival_time);
+        if time_cmp == Ordering::Equal {
             if self.message_type.priority() > other.message_type.priority() {
                 Ordering::Greater
             } else if self.message_type.priority() == other.message_type.priority() {
@@ -83,6 +62,8 @@ impl Ord for Message {
             } else {
                 Ordering::Less
             }
+        } else {
+            time_cmp.reverse()
         }
     }
 }

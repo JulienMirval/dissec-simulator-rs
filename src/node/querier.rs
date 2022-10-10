@@ -22,7 +22,7 @@ impl Node for QuerierNode {
     }
 
     fn settings(&self) -> &RunSettings {
-        &self.settings()
+        &self.data().settings
     }
     fn data(&self) -> &NodeData {
         &self.data

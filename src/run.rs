@@ -1,4 +1,4 @@
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct BuildingBlocks {
     pub full_failure_propagation: bool,
     pub local_failure_propagation: bool,
@@ -33,21 +33,21 @@ impl BuildingBlocks {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct CostsSettings {
     pub crypto: f64,
     pub comm: f64,
     pub compute: f64,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TreeSettings {
     pub fanout: u8,
     pub depth: u8,
     pub group_size: u8,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct RunSettings {
     pub building_blocks: BuildingBlocks,
     pub average_failure_time: f64,

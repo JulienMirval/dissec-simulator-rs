@@ -1,5 +1,6 @@
 use crate::common::Address;
 
+#[derive(Debug)]
 pub struct ChannelState {
     pub peer_address: Address,
     pub maintained: bool,

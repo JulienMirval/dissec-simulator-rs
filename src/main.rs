@@ -1,3 +1,5 @@
+#![feature(total_cmp)] // Needed to compare floats
+
 mod common;
 mod manager;
 mod message;
@@ -28,7 +30,13 @@ fn main() {
         .tree_node
         .print(&manager, Some(0));
 
-    while manager.handle_next_message() {
-        println!("{:?}", manager.message_heap.peek());
+    let mut done = false;
+    while !done {
+        manager.handle_next_message();
+
+        let msg = manager.message_queue.last();
+        if msg.is_none() {
+            done = true;
+        }
     }
 }

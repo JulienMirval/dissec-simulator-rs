@@ -7,6 +7,7 @@ use crate::{
 
 use super::{ChannelState, NodeRole};
 
+#[derive(Debug)]
 pub struct NodeData {
     pub settings: RunSettings,
     pub address: Address,
@@ -28,11 +29,25 @@ pub trait Node {
 
     fn initialize(&mut self) {}
 
-    fn handle_message(&mut self, msg: &mut Message) -> Vec<Message> {
+    fn handle_message(&mut self, msg: &mut Message) -> Option<Vec<Message>> {
         if self.data().death_time <= msg.arrival_time {
+            // println!("Node #{} is dead", self.data().address);
             // The node is dead by the time the message arrives
-            return vec![];
+            return Some(vec![]);
         }
+        if msg.arrival_time < self.data().local_time
+            && msg.message_type != MessageType::RequestHealth
+        {
+            println!("Message bounced for node #{}", self.data().address);
+            msg.arrival_time = self.data().local_time;
+            return None;
+        }
+
+        self.data_mut().local_time = if self.data().local_time < msg.arrival_time {
+            msg.arrival_time
+        } else {
+            self.data().local_time
+        };
 
         print!(
             "[@{}] Node #{} ({}): ",
@@ -41,21 +56,16 @@ pub trait Node {
             self.data().role
         );
 
-        self.data_mut().local_time = if self.data().local_time < msg.arrival_time {
-            msg.arrival_time
-        } else {
-            self.data().local_time
-        };
         msg.delivered = true;
-        match msg.message_type {
+        Some(match msg.message_type {
             MessageType::ScheduleHealthCheck => self.handle_schedule_health_check(msg),
             MessageType::RequestHealth => self.handle_request_health(msg),
             MessageType::ConfirmHealth => self.handle_confirm_health(msg),
             _ => panic!("Unknown message type"),
-        }
+        })
     }
     fn handle_schedule_health_check(&mut self, msg: &mut Message) -> Vec<Message> {
-        println!("Default implementation schedule HC");
+        println!("Node #{} is sending health checks", msg.emitter);
         let mut resulting_messages = vec![];
 
         // Check maintained channels
@@ -83,14 +93,28 @@ pub trait Node {
 
         resulting_messages
     }
-    fn handle_request_health(&mut self, _msg: &mut Message) -> Vec<Message> {
-        println!("Default implementation request HC");
-        let resulting_messages = vec![];
+    fn handle_request_health(&mut self, msg: &mut Message) -> Vec<Message> {
+        println!(
+            "Node #{} received a health check from node #{}",
+            msg.receiver, msg.emitter
+        );
+        let mut resulting_messages = vec![];
+
+        resulting_messages.push(Message::new(
+            MessageType::ConfirmHealth,
+            self.data().local_time,
+            self.data().address,
+            self.data().local_time + self.message_latency(),
+            msg.emitter,
+        ));
 
         resulting_messages
     }
-    fn handle_confirm_health(&mut self, _msg: &mut Message) -> Vec<Message> {
-        println!("Default implementation send data");
+    fn handle_confirm_health(&mut self, msg: &mut Message) -> Vec<Message> {
+        println!(
+            "Node #{} received a health confirmation from node #{}",
+            msg.receiver, msg.emitter
+        );
         let resulting_messages = vec![];
 
         resulting_messages

@@ -1,6 +1,6 @@
 use crate::{common::Address, manager::Manager};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TreeNode {
     pub address: Address,
     pub depth: u8,

@@ -1,6 +1,8 @@
 use crypto::{digest::Digest, sha2::Sha256};
+use itertools::Itertools;
 use rand::prelude::*;
-use std::collections::{BinaryHeap, HashMap};
+use sorted_insert::SortedInsertBinary;
+use std::collections::HashMap;
 
 use crate::common::*;
 use crate::message::Message;
@@ -11,7 +13,7 @@ pub struct Manager {
     pub settings: RunSettings,
     pub nodes: HashMap<Address, Box<dyn Node>>,
     pub querier_address: Address,
-    pub message_heap: BinaryHeap<Message>,
+    pub message_queue: Vec<Message>,
     pub current_time: f64,
     pub rng: SmallRng,
 }
@@ -38,7 +40,7 @@ impl Manager {
             },
             querier_address: 0_usize,
             nodes: HashMap::new(),
-            message_heap: BinaryHeap::new(),
+            message_queue: vec![],
             current_time: 0.0,
             rng: SmallRng::from_seed(seed_bytes),
         };
@@ -76,19 +78,110 @@ impl Manager {
     }
 
     pub fn handle_next_message(&mut self) -> bool {
-        let msg = self.message_heap.pop();
+        let msg = self.message_queue.pop();
 
         if let Some(mut msg) = msg {
-            self.nodes
+            let resulting_messages = self
+                .nodes
                 .get_mut(&msg.receiver)
                 .unwrap()
-                .handle_message(&mut msg)
-                .iter()
-                .for_each(|resulting_message| self.message_heap.push(resulting_message.clone()));
+                .handle_message(&mut msg);
 
+            if resulting_messages.is_none() {
+                // Message bounced, queue it back
+                self.insert_message(msg);
+            } else {
+                self.current_time = msg.arrival_time;
+                resulting_messages
+                    .unwrap()
+                    .iter()
+                    .sorted()
+                    .for_each(|resulting_message| self.insert_message(resulting_message.clone()));
+            }
             true
         } else {
             false
+        }
+    }
+
+    pub fn insert_message(&mut self, msg: Message) {
+        self.message_queue.sorted_insert_asc_binary(msg);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{message::MessageType, run::TreeSettings};
+
+    use super::*;
+
+    #[test]
+    fn handle_message() {
+        let mut manager = Manager::new(
+            "str".to_string(),
+            TreeSettings {
+                fanout: 4,
+                depth: 3,
+                group_size: 3,
+            },
+        );
+        manager.setup();
+        manager.message_queue.clear();
+
+        let arrival_time = 1000.0;
+        let emitter: Address = 0;
+        let receiver: Address = 0;
+        manager.insert_message(Message::new(
+            MessageType::ScheduleHealthCheck,
+            0.0,
+            emitter,
+            arrival_time,
+            receiver,
+        ));
+
+        manager.handle_next_message();
+
+        assert_eq!(manager.current_time, arrival_time);
+        assert_eq!(
+            manager.nodes.get(&receiver).unwrap().data().local_time,
+            arrival_time
+        );
+    }
+
+    #[test]
+    fn test_message_insertion() {
+        let mut manager = Manager::new(
+            "str".to_string(),
+            TreeSettings {
+                fanout: 4,
+                depth: 3,
+                group_size: 3,
+            },
+        );
+        manager.setup();
+        manager.message_queue.clear();
+
+        let emitter: Address = 0;
+        let receiver: Address = 0;
+        let iterations = 10;
+        let step_size = 100.0;
+
+        for i in 0..iterations {
+            manager.insert_message(Message::new(
+                MessageType::ConfirmHealth,
+                0.0,
+                emitter,
+                (i as f64) * step_size,
+                receiver,
+            ));
+        }
+
+        for i in 0..iterations {
+            assert_eq!(
+                manager.message_queue.last().unwrap().arrival_time,
+                (i as f64) * step_size
+            );
+            manager.handle_next_message();
         }
     }
 }
