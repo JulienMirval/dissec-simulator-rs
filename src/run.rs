@@ -1,8 +1,22 @@
+use std::fmt;
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub enum FailureHandlingMode {
+    #[default]
+    FullFailurePropagation,
+    LocalFailurePropagation,
+    NodeReplacement,
+}
+
+impl fmt::Display for FailureHandlingMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct BuildingBlocks {
-    pub full_failure_propagation: bool,
-    pub local_failure_propagation: bool,
-    pub aggregator_node_replacement: bool,
+    pub failure_handling: FailureHandlingMode,
 }
 
 impl BuildingBlocks {
@@ -12,23 +26,17 @@ impl BuildingBlocks {
 
     pub fn minimal() -> BuildingBlocks {
         BuildingBlocks {
-            full_failure_propagation: true,
-            local_failure_propagation: false,
-            aggregator_node_replacement: false,
+            failure_handling: FailureHandlingMode::FullFailurePropagation,
         }
     }
     pub fn tolerant() -> BuildingBlocks {
         BuildingBlocks {
-            full_failure_propagation: false,
-            local_failure_propagation: true,
-            aggregator_node_replacement: false,
+            failure_handling: FailureHandlingMode::LocalFailurePropagation,
         }
     }
     pub fn resilient() -> BuildingBlocks {
         BuildingBlocks {
-            full_failure_propagation: false,
-            local_failure_propagation: true,
-            aggregator_node_replacement: true,
+            failure_handling: FailureHandlingMode::NodeReplacement,
         }
     }
 }

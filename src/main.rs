@@ -1,4 +1,5 @@
 #![feature(total_cmp)] // Needed to compare floats
+#![feature(derive_default_enum)]
 
 mod common;
 mod manager;
@@ -8,10 +9,11 @@ mod run;
 mod tree_node;
 
 use manager::Manager;
-use run::TreeSettings;
+use run::{BuildingBlocks, TreeSettings};
 
 fn main() {
     let mut manager = Manager::new(
+        BuildingBlocks::default(),
         "42".to_string(),
         TreeSettings {
             fanout: 4,
@@ -38,5 +40,13 @@ fn main() {
         if msg.is_none() {
             done = true;
         }
+    }
+
+    if let Err(err) = manager.recording.write_to_path(
+        format!("{}.csv", chrono::offset::Utc::now())
+            .replace(":", "_")
+            .as_str(),
+    ) {
+        println!("Failed writing records: {}", err);
     }
 }

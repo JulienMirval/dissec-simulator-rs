@@ -9,6 +9,8 @@ use crate::message::Message;
 use crate::node::{Node, QuerierNode};
 use crate::run::{BuildingBlocks, CostsSettings, RunSettings, TreeSettings};
 
+use super::Recording;
+
 pub struct Manager {
     pub settings: RunSettings,
     pub nodes: HashMap<Address, Box<dyn Node>>,
@@ -16,10 +18,22 @@ pub struct Manager {
     pub message_queue: Vec<Message>,
     pub current_time: f64,
     pub rng: SmallRng,
+    pub recording: Recording,
 }
 
 impl Manager {
-    pub fn new(seed: String, tree: TreeSettings) -> Manager {
+    pub fn default() -> Manager {
+        Self::new(
+            BuildingBlocks::default(),
+            "str".to_string(),
+            TreeSettings {
+                fanout: 4,
+                depth: 3,
+                group_size: 3,
+            },
+        )
+    }
+    pub fn new(building_blocks: BuildingBlocks, seed: String, tree: TreeSettings) -> Manager {
         let mut hasher = Sha256::new();
         hasher.input_str(seed.as_ref());
         let mut seed_bytes: [u8; 32] = [0; 32];
@@ -27,7 +41,7 @@ impl Manager {
 
         let manager = Manager {
             settings: RunSettings {
-                building_blocks: BuildingBlocks::resilient(),
+                building_blocks: building_blocks.clone(),
                 average_failure_time: 10000.0,
                 health_check_period: 1000.0,
                 costs: CostsSettings {
@@ -43,6 +57,7 @@ impl Manager {
             message_queue: vec![],
             current_time: 0.0,
             rng: SmallRng::from_seed(seed_bytes),
+            recording: Recording::new(building_blocks, true),
         };
 
         manager
@@ -97,6 +112,7 @@ impl Manager {
                     .iter()
                     .sorted()
                     .for_each(|resulting_message| self.insert_message(resulting_message.clone()));
+                self.recording.record(&msg);
             }
             true
         } else {
@@ -118,6 +134,7 @@ mod tests {
     #[test]
     fn handle_message() {
         let mut manager = Manager::new(
+            BuildingBlocks::default(),
             "str".to_string(),
             TreeSettings {
                 fanout: 4,
@@ -151,6 +168,7 @@ mod tests {
     #[test]
     fn test_message_insertion() {
         let mut manager = Manager::new(
+            BuildingBlocks::default(),
             "str".to_string(),
             TreeSettings {
                 fanout: 4,

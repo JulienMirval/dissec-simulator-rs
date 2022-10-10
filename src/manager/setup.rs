@@ -8,6 +8,7 @@ use crate::{
     common::*,
     message::{Message, MessageType},
     node::*,
+    run::FailureHandlingMode,
 };
 
 use super::Manager;
@@ -120,7 +121,7 @@ impl Manager {
 
     /// Initialize the tree to failures that occured during the tree creation
     pub(super) fn initialize_tree_failures(&mut self) {
-        if self.settings.building_blocks.aggregator_node_replacement {
+        if self.settings.building_blocks.failure_handling == FailureHandlingMode::NodeReplacement {
             // When replacing nodes, extend the construction by the time it takes to replace a node times the number of failures
             let replacement_time: f64 =
                 10.0 * self.settings.costs.crypto + 8.0 * self.settings.costs.comm;
@@ -147,7 +148,9 @@ impl Manager {
                 self.current_time += replacement_time;
                 i += 1;
             }
-        } else if self.settings.building_blocks.local_failure_propagation {
+        } else if self.settings.building_blocks.failure_handling
+            == FailureHandlingMode::LocalFailurePropagation
+        {
             // Failed nodes are dropped by their parents
             let failed_nodes: Vec<_> = self
                 .nodes
@@ -173,7 +176,9 @@ impl Manager {
             for node in &failed_nodes {
                 stop_child(self, &mut stopped_nodes, node);
             }
-        } else if self.settings.building_blocks.full_failure_propagation {
+        } else if self.settings.building_blocks.failure_handling
+            == FailureHandlingMode::FullFailurePropagation
+        {
             // self.current_time = self
             //     .nodes
             //     .iter()
@@ -285,20 +290,11 @@ impl Manager {
 
 #[cfg(test)]
 mod tests {
-    use crate::run::TreeSettings;
-
     use super::*;
 
     #[test]
     fn create_tree() {
-        let mut manager = Manager::new(
-            "str".to_string(),
-            TreeSettings {
-                fanout: 4,
-                depth: 3,
-                group_size: 3,
-            },
-        );
+        let mut manager = Manager::default();
 
         manager.setup();
 
