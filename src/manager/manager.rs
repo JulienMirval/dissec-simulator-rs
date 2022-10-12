@@ -39,25 +39,27 @@ impl Manager {
         let mut seed_bytes: [u8; 32] = [0; 32];
         hasher.result(&mut seed_bytes);
 
-        let manager = Manager {
-            settings: RunSettings {
-                building_blocks: building_blocks.clone(),
-                average_failure_time: 10000.0,
-                health_check_period: 1000.0,
-                costs: CostsSettings {
-                    crypto: 100.0,
-                    comm: 100.0,
-                    compute: 0.0,
-                },
-                tree,
-                seed,
+        let settings = RunSettings {
+            building_blocks: building_blocks.clone(),
+            average_failure_time: 10000.0,
+            health_check_period: 1000.0,
+            costs: CostsSettings {
+                crypto: 100.0,
+                comm: 100.0,
+                compute: 0.0,
             },
+            tree,
+            seed,
+        };
+
+        let manager = Manager {
+            settings: settings.clone(),
             querier_address: 0_usize,
             nodes: HashMap::new(),
             message_queue: vec![],
             current_time: 0.0,
             rng: SmallRng::from_seed(seed_bytes),
-            recording: Recording::new(building_blocks, true),
+            recording: Recording::new(settings, true),
         };
 
         manager

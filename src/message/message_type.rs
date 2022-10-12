@@ -1,11 +1,20 @@
-#[derive(Copy, PartialEq, PartialOrd, Debug)]
+use std::fmt;
+
+#[derive(Copy, PartialEq, PartialOrd, Debug, Default)]
 pub enum MessageType {
+    #[default]
     Stop,
     RequestContribution,
     SendData,
     ScheduleHealthCheck,
     RequestHealth,
     ConfirmHealth,
+}
+
+impl fmt::Display for MessageType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }
 
 impl Clone for MessageType {

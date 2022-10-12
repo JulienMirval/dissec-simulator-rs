@@ -56,13 +56,19 @@ pub trait Node {
             self.data().role
         );
 
+        let time_before: f64 = self.data().local_time;
         msg.delivered = true;
-        Some(match msg.message_type {
+        let resulting_messages = match msg.message_type {
             MessageType::ScheduleHealthCheck => self.handle_schedule_health_check(msg),
             MessageType::RequestHealth => self.handle_request_health(msg),
             MessageType::ConfirmHealth => self.handle_confirm_health(msg),
             _ => panic!("Unknown message type"),
-        })
+        };
+
+        // Work of the message = time spent working by the node
+        msg.work = self.data().local_time - time_before;
+
+        Some(resulting_messages)
     }
     fn handle_schedule_health_check(&mut self, msg: &mut Message) -> Vec<Message> {
         println!("Node #{} is sending health checks", msg.emitter);

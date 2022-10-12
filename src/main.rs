@@ -9,18 +9,9 @@ mod run;
 mod tree_node;
 
 use manager::Manager;
-use run::{BuildingBlocks, TreeSettings};
 
 fn main() {
-    let mut manager = Manager::new(
-        BuildingBlocks::default(),
-        "42".to_string(),
-        TreeSettings {
-            fanout: 4,
-            depth: 3,
-            group_size: 3,
-        },
-    );
+    let mut manager = Manager::default();
 
     manager.setup();
 
@@ -42,9 +33,16 @@ fn main() {
         }
     }
 
+    manager.recording.final_contributors = manager
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.data().death_time > manager.current_time)
+        .count();
+
     if let Err(err) = manager.recording.write_to_path(
         format!("{}.csv", chrono::offset::Utc::now())
             .replace(":", "_")
+            .replace(" ", ".")
             .as_str(),
     ) {
         println!("Failed writing records: {}", err);

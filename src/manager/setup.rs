@@ -235,6 +235,7 @@ impl Manager {
             } else if current_depth == 1 {
                 LeafAggregatorNode::new(manager.settings.clone(), addr)
             } else {
+                manager.recording.initial_contributors += 1;
                 ContributorNode::new(manager.settings.clone(), addr)
             };
 

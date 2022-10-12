@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fmt::Display};
 
 use crate::common::Address;
 
-use super::MessageType;
+use super::{MessageContent, MessageType};
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct Message {
@@ -12,6 +12,8 @@ pub struct Message {
     pub arrival_time: f64,
     pub receiver: Address,
     pub message_type: MessageType,
+    pub work: f64,
+    pub content: MessageContent,
 }
 
 impl Message {
@@ -29,6 +31,8 @@ impl Message {
             arrival_time,
             receiver,
             message_type,
+            work: 0.0,
+            content: MessageContent::default(),
         }
     }
 
@@ -45,6 +49,8 @@ impl Message {
             arrival_time,
             receiver: emitter,
             message_type,
+            work: 0.0,
+            content: MessageContent::default(),
         }
     }
 }
