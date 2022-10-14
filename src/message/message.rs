@@ -100,14 +100,14 @@ mod tests {
     fn pings_are_handled_at_the_same_time() {
         let addr = Address::default();
         let a = Message::new(
-            MessageType::RequestContribution,
+            MessageType::RequestData,
             0.0,
             addr,
             0.0,
             addr.increment(None),
         );
         let b = Message::new(
-            MessageType::RequestContribution,
+            MessageType::RequestData,
             0.0,
             addr,
             0.0,
@@ -121,7 +121,7 @@ mod tests {
     fn pings_are_handled_first() {
         let addr = Address::default();
         let a = Message::new(
-            MessageType::RequestContribution,
+            MessageType::RequestData,
             0.0,
             addr,
             0.0,

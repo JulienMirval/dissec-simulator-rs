@@ -1,8 +1,11 @@
 use std::fmt;
 
+use crate::{common::Address, shares::Share};
+
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct MessageContent {
-    pub data: Option<f64>,
+    pub data: Option<Share>,
+    pub target_node: Option<Address>,
 }
 
 impl fmt::Display for MessageContent {

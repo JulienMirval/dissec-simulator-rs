@@ -41,7 +41,7 @@ impl Manager {
 
         let settings = RunSettings {
             building_blocks: building_blocks.clone(),
-            average_failure_time: 10000.0,
+            average_failure_time: 0.0,
             health_check_period: 1000.0,
             costs: CostsSettings {
                 crypto: 100.0,
@@ -98,6 +98,14 @@ impl Manager {
         let msg = self.message_queue.pop();
 
         if let Some(mut msg) = msg {
+            // Move simulation clock
+            self.current_time = msg.arrival_time;
+
+            if (self.current_time > 100000.0) {
+                // Prevent inifinite loops
+                panic!("Deadline hit...");
+            }
+
             let resulting_messages = self
                 .nodes
                 .get_mut(&msg.receiver)

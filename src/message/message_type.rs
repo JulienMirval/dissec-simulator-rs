@@ -4,11 +4,14 @@ use std::fmt;
 pub enum MessageType {
     #[default]
     Stop,
-    RequestContribution,
+    RequestData,
+    PrepareData,
     SendData,
     ScheduleHealthCheck,
     RequestHealth,
     ConfirmHealth,
+    OpenChannel,
+    ConfirmChannel,
 }
 
 impl fmt::Display for MessageType {
@@ -20,12 +23,7 @@ impl fmt::Display for MessageType {
 impl Clone for MessageType {
     fn clone(&self) -> Self {
         match self {
-            Self::Stop => Self::Stop,
-            Self::RequestContribution => Self::RequestContribution,
-            Self::SendData => Self::SendData,
-            Self::ScheduleHealthCheck => Self::ScheduleHealthCheck,
-            Self::RequestHealth => Self::RequestHealth,
-            Self::ConfirmHealth => Self::ConfirmHealth,
+            &default => default,
         }
     }
 }
@@ -34,7 +32,9 @@ impl MessageType {
     pub fn priority(self) -> u8 {
         match self {
             MessageType::Stop => 255,
-            MessageType::RequestContribution => 1,
+            MessageType::OpenChannel => 255,
+            MessageType::ConfirmChannel => 255,
+            MessageType::RequestData => 1,
             _ => 0,
         }
     }

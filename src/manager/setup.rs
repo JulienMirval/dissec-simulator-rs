@@ -4,12 +4,7 @@ use itertools::Itertools;
 use rand::Rng;
 use rand_distr::{Distribution, Exp};
 
-use crate::{
-    common::*,
-    message::{Message, MessageType},
-    node::*,
-    run::FailureHandlingMode,
-};
+use crate::{common::*, node::*, run::FailureHandlingMode};
 
 use super::Manager;
 
@@ -19,14 +14,21 @@ impl Manager {
         let exp = Exp::new(1.0 / self.settings.average_failure_time).unwrap();
 
         for (_, node) in &mut self.nodes {
-            node.data_mut().death_time = exp.sample(&mut self.rng);
+            // Nodes don't fail when the average failure time is 0
+            if (self.settings.average_failure_time == 0.0
+                || self.settings.average_failure_time == f64::MAX)
+            {
+                node.data_mut().death_time = f64::MAX;
+            } else {
+                node.data_mut().death_time = exp.sample(&mut self.rng);
+            }
         }
     }
 
     /// Initializes the channels between nodes and send initial messages
     pub(super) fn initialize_nodes(&mut self) {
         let mut messages = vec![];
-        for (&node_address, node) in self.nodes.iter_mut() {
+        for (_, node) in self.nodes.iter_mut() {
             let position = node
                 .data()
                 .tree_node
@@ -35,16 +37,7 @@ impl Manager {
                 .position(|x| x == &node.data().address)
                 .unwrap();
 
-            // Contributors don't monitor health
-            if node.data().role != NodeRole::Contributor {
-                messages.push(Message::new(
-                    MessageType::ScheduleHealthCheck,
-                    self.current_time,
-                    node_address,
-                    self.current_time,
-                    node_address,
-                ));
-            }
+            messages.append(&mut node.setup(self.current_time));
 
             if node.data().role == NodeRole::Querier {
                 // Channels with children

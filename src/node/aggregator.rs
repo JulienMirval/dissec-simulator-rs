@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{common::Address, run::RunSettings, tree_node::TreeNode};
 
 use super::{Node, NodeData, NodeRole};
@@ -16,15 +18,15 @@ impl Node for AggregatorNode {
             death_time: 0.0,
             opened_channels: vec![],
             tree_node: TreeNode::new(address),
+            finished_working: false,
+            aggregates: HashMap::new(),
+            secret_value: 50.0,
         };
         data.role = NodeRole::Aggregator;
 
         Box::new(AggregatorNode { data })
     }
 
-    fn settings(&self) -> &RunSettings {
-        &self.data().settings
-    }
     fn data(&self) -> &NodeData {
         &self.data
     }

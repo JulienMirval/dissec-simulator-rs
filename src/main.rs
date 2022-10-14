@@ -6,6 +6,7 @@ mod manager;
 mod message;
 mod node;
 mod run;
+mod shares;
 mod tree_node;
 
 use manager::Manager;
